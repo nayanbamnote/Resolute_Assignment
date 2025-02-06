@@ -1,6 +1,7 @@
 'use client'
 
 // React Imports
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 // MUI Imports
@@ -9,6 +10,8 @@ import Typography from '@mui/material/Typography'
 
 // Hook Imports
 import { useAuth } from '@/context/AuthContext'
+import { db } from '@/utils/firebaseConfig'
+import { doc, getDoc } from 'firebase/firestore'
 import SupportDashboard from '@/components/SupportDashboard'
 import UserDashboard from '@/components/UserDashboard'
 
@@ -16,7 +19,24 @@ const DashboardAnalytics = () => {
   // Hooks
   const router = useRouter()
   const { user, signOut } = useAuth()
-  console.log(user, user?.role)
+  const [role, setRole] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      if (user) {
+        const userDoc = await getDoc(doc(db, 'users', user.uid))
+        if (userDoc.exists()) {
+          setRole(userDoc.data().role)
+        } else {
+          console.error('No such document!')
+        }
+      } else {
+        router.push('/login') // Redirect if user is not logged in
+      }
+    }
+
+    fetchUserRole()
+  }, [user, router])
 
   const handleLogout = async () => {
     try {
@@ -36,7 +56,7 @@ const DashboardAnalytics = () => {
         </Button>
       </div>
       <Typography>Welcome, {user?.email}</Typography>
-      <div className=''>{user?.role === 'agent' ? <SupportDashboard /> : <UserDashboard />}</div>
+      <div className=''>{role === 'agent' ? <SupportDashboard /> : <UserDashboard />}</div>
     </div>
   )
 }
