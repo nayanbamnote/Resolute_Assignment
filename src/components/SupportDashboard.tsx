@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import {
+  Box,
   Button,
   Table,
   TableBody,
@@ -14,111 +15,103 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  IconButton
+  IconButton,
+  CircularProgress,
+  Chip
 } from '@mui/material'
 import AssignmentIcon from '@mui/icons-material/Assignment'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
-import CloseIcon from '@mui/icons-material/Close'
+import { useAuth } from '@/context/AuthContext'
+import { getAllTickets, assignTicket, updateTicketStatus, type Ticket } from '@/services/ticketService'
 
 const SupportDashboard = () => {
-  // Initialize tickets state with dummy data
-  const [tickets, setTickets] = useState([
-    {
-      id: 1,
-      title: 'Issue with login',
-      description: 'User cannot log in',
-      priority: 'High',
-      status: 'Open',
-      createdBy: 'Alice',
-      assignedTo: 'Bob',
-      category: 'Technical',
-      date: '2023-10-01',
-      isUrgent: false,
-      attachments: null
-    },
-    {
-      id: 2,
-      title: 'Page not found',
-      description: '404 error on homepage',
-      priority: 'Medium',
-      status: 'Open',
-      createdBy: 'Charlie',
-      assignedTo: 'David',
-      category: 'General',
-      date: '2023-10-02',
-      isUrgent: true,
-      attachments: null
-    },
-    {
-      id: 3,
-      title: 'Payment processing error',
-      description: 'User reports payment not going through',
-      priority: 'High',
-      status: 'Open',
-      createdBy: 'Eve',
-      assignedTo: 'Frank',
-      category: 'Billing',
-      date: '2023-10-03',
-      isUrgent: true,
-      attachments: null
-    }
-    // Add more dummy tickets as needed
-  ])
-
+  const { user } = useAuth()
+  const [tickets, setTickets] = useState<Ticket[]>([])
+  const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
-  const [currentTicket, setCurrentTicket] = useState({
-    id: 0,
-    title: '',
-    description: '',
-    priority: '',
-    status: '',
-    createdBy: '',
-    assignedTo: '',
-    category: '',
-    date: '',
-    isUrgent: false,
-    attachments: null
-  })
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
 
-  const updateStatus = (ticketId: number) => {
-    const updatedTickets = tickets.map(ticket => {
-      if (ticket.id === ticketId) {
-        return { ...ticket, status: ticket.status === 'Open' ? 'Completed' : 'Open' }
-      }
-      return ticket
-    })
-    setTickets(updatedTickets)
+  useEffect(() => {
+    fetchTickets()
+  }, [])
+
+  const fetchTickets = async () => {
+    try {
+      setLoading(true)
+      const fetchedTickets = await getAllTickets()
+      setTickets(fetchedTickets)
+    } catch (error) {
+      console.error('Error fetching tickets:', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const openAssignModal = (ticketId: number) => {
-    setCurrentTicket(tickets.find(ticket => ticket.id === ticketId)!)
-    setModalOpen(true)
+  const handleAssignTicket = async (ticketId: string, agentId: string) => {
+    try {
+      await assignTicket(ticketId, agentId)
+      // Update local state
+      setTickets(prev =>
+        prev.map(ticket =>
+          ticket.id === ticketId ? { ...ticket, assignedTo: agentId, assignedAt: new Date() } : ticket
+        )
+      )
+      setModalOpen(false)
+    } catch (error) {
+      console.error('Error assigning ticket:', error)
+    }
   }
 
-  const assignTicket = () => {
-    const updatedTickets = tickets.map(ticket => {
-      if (ticket.id === currentTicket.id) {
-        return { ...ticket, assignedTo: currentTicket.assignedTo }
-      }
-      return ticket
-    })
-    setTickets(updatedTickets)
-    setModalOpen(false)
+  const handleStatusUpdate = async (ticketId: string, newStatus: Ticket['status']) => {
+    if (!user?.uid) return
+
+    try {
+      await updateTicketStatus(ticketId, newStatus, user.uid)
+      // Update local state
+      setTickets(prev =>
+        prev.map(ticket =>
+          ticket.id === ticketId
+            ? { ...ticket, status: newStatus, lastUpdatedBy: user.uid, lastUpdatedAt: new Date() }
+            : ticket
+        )
+      )
+    } catch (error) {
+      console.error('Error updating ticket status:', error)
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    const colors = {
+      Open: 'error',
+      'In Progress': 'warning',
+      Resolved: 'success',
+      Closed: 'default'
+    }
+    return colors[status as keyof typeof colors]
+  }
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    )
   }
 
   return (
-    <div>
+    <Box sx={{ p: 3 }}>
       <Typography variant='h4' gutterBottom>
         Support Dashboard
       </Typography>
-      <TableContainer component={Paper} style={{ marginTop: '20px' }}>
+
+      <TableContainer component={Paper}>
         <Table>
           <TableHead>
             <TableRow>
               <TableCell>Ticket ID</TableCell>
               <TableCell>Title</TableCell>
-              <TableCell>Description</TableCell>
               <TableCell>Priority</TableCell>
+              <TableCell>Category</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Created By</TableCell>
               <TableCell>Assigned To</TableCell>
@@ -128,23 +121,44 @@ const SupportDashboard = () => {
           <TableBody>
             {tickets.map(ticket => (
               <TableRow key={ticket.id}>
-                <TableCell>{ticket.id}</TableCell>
+                <TableCell>{ticket.id.slice(0, 8)}</TableCell>
                 <TableCell>{ticket.title}</TableCell>
-                <TableCell>{ticket.description}</TableCell>
-                <TableCell>{ticket.priority}</TableCell>
-                <TableCell>{ticket.status}</TableCell>
-                <TableCell>{ticket.createdBy}</TableCell>
-                <TableCell>{ticket.assignedTo}</TableCell>
                 <TableCell>
-                  <IconButton onClick={() => openAssignModal(ticket.id)}>
+                  <Chip
+                    label={ticket.priority}
+                    color={ticket.priority === 'High' ? 'error' : ticket.priority === 'Medium' ? 'warning' : 'default'}
+                  />
+                </TableCell>
+                <TableCell>{ticket.category}</TableCell>
+                <TableCell>
+                  <Chip label={ticket.status} color={getStatusColor(ticket.status)} />
+                </TableCell>
+                <TableCell>{ticket.userId}</TableCell>
+                <TableCell>{ticket.assignedTo || 'Unassigned'}</TableCell>
+                <TableCell>
+                  <IconButton
+                    onClick={() => {
+                      setSelectedTicket(ticket)
+                      setModalOpen(true)
+                    }}
+                  >
                     <AssignmentIcon />
                   </IconButton>
-                  <IconButton onClick={() => updateStatus(ticket.id)}>
-                    {ticket.status === 'Open' ? (
-                      <CheckCircleIcon style={{ color: '' }} />
-                    ) : (
-                      <CheckCircleIcon style={{ color: 'green' }} />
-                    )}
+                  <IconButton
+                    onClick={() =>
+                      handleStatusUpdate(
+                        ticket.id,
+                        ticket.status === 'Open'
+                          ? 'In Progress'
+                          : ticket.status === 'In Progress'
+                            ? 'Resolved'
+                            : ticket.status === 'Resolved'
+                              ? 'Closed'
+                              : 'Open'
+                      )
+                    }
+                  >
+                    <CheckCircleIcon color={ticket.status === 'Closed' ? 'success' : 'inherit'} />
                   </IconButton>
                 </TableCell>
               </TableRow>
@@ -153,50 +167,44 @@ const SupportDashboard = () => {
         </Table>
       </TableContainer>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
-        <div
-          style={{
-            display: 'flex',
-            gap: '10px',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            alignItems: 'center',
-            padding: '20px',
-            backgroundColor: 'white',
-            margin: 'auto',
-            marginTop: '100px',
-            width: '500px',
-            borderRadius: '8px',
-            boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)'
-          }}
-        >
-          <Typography variant='h6'>Assign Ticket</Typography>
-          <FormControl fullWidth margin='normal'>
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <Paper sx={{ p: 3, width: 400, maxWidth: '90%' }}>
+          <Typography variant='h6' gutterBottom>
+            Assign Ticket
+          </Typography>
+          <FormControl fullWidth sx={{ mb: 2 }}>
             <InputLabel>Assign To</InputLabel>
-            <br></br>
             <Select
-              value={currentTicket.assignedTo}
-              onChange={e => setCurrentTicket({ ...currentTicket, assignedTo: e.target.value })}
+              value={selectedTicket?.assignedTo || ''}
+              onChange={e => {
+                if (selectedTicket) {
+                  handleAssignTicket(selectedTicket.id, e.target.value)
+                }
+              }}
             >
-              <MenuItem value='Bob'>Bob</MenuItem>
-              <MenuItem value='Charlie'>Charlie</MenuItem>
-              <MenuItem value='David'>David</MenuItem>
-              {/* Add more users as needed */}
+              <MenuItem value=''>Unassigned</MenuItem>
+              <MenuItem value='agent1'>Agent 1</MenuItem>
+              <MenuItem value='agent2'>Agent 2</MenuItem>
+              <MenuItem value='agent3'>Agent 3</MenuItem>
             </Select>
           </FormControl>
-          <Button variant='contained' color='primary' onClick={assignTicket}>
-            Assign
-          </Button>
-          <Button variant='outlined' onClick={() => setModalOpen(false)}>
-            Cancel
-          </Button>
-        </div>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+            <Button onClick={() => setModalOpen(false)}>Cancel</Button>
+            <Button variant='contained' onClick={() => setModalOpen(false)}>
+              Save
+            </Button>
+          </Box>
+        </Paper>
       </Modal>
-    </div>
+    </Box>
   )
 }
 

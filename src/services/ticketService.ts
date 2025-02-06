@@ -13,7 +13,10 @@ export interface Ticket {
   contactPhone: string
   dueDate: Date
   status: 'Open' | 'In Progress' | 'Resolved' | 'Closed'
-  assignedTo?: string
+  assignedTo: string | null
+  assignedAt?: Date
+  lastUpdatedBy?: string
+  lastUpdatedAt?: Date
   location?: string
   createdAt: Date
   userId: string // Add userId to track ticket ownership
@@ -123,4 +126,44 @@ export const getUserTickets = async (userId: string): Promise<Ticket[]> => {
     }
     return []
   }
+}
+
+export const getAllTickets = async (): Promise<Ticket[]> => {
+  try {
+    const querySnapshot = await getDocs(ticketsCollection)
+    return querySnapshot.docs.map(doc => ({
+      ...doc.data(),
+      id: doc.id,
+      dueDate: new Date(doc.data().dueDate),
+      createdAt: new Date(doc.data().createdAt),
+      assignedAt: doc.data().assignedAt ? new Date(doc.data().assignedAt) : undefined,
+      lastUpdatedAt: doc.data().lastUpdatedAt ? new Date(doc.data().lastUpdatedAt) : undefined
+    })) as Ticket[]
+  } catch (error) {
+    console.error('Error fetching all tickets:', error)
+    throw error
+  }
+}
+
+export const assignTicket = async (ticketId: string, agentId: string): Promise<void> => {
+  const ticketRef = doc(db, 'tickets', ticketId)
+  await updateDoc(ticketRef, {
+    assignedTo: agentId,
+    assignedAt: new Date().toISOString(),
+    lastUpdatedBy: agentId,
+    lastUpdatedAt: new Date().toISOString()
+  })
+}
+
+export const updateTicketStatus = async (
+  ticketId: string,
+  status: Ticket['status'],
+  updatedBy: string
+): Promise<void> => {
+  const ticketRef = doc(db, 'tickets', ticketId)
+  await updateDoc(ticketRef, {
+    status,
+    lastUpdatedBy: updatedBy,
+    lastUpdatedAt: new Date().toISOString()
+  })
 }
