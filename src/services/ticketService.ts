@@ -131,14 +131,18 @@ export const getUserTickets = async (userId: string): Promise<Ticket[]> => {
 export const getAllTickets = async (): Promise<Ticket[]> => {
   try {
     const querySnapshot = await getDocs(ticketsCollection)
-    return querySnapshot.docs.map(doc => ({
-      ...doc.data(),
-      id: doc.id,
-      dueDate: new Date(doc.data().dueDate),
-      createdAt: new Date(doc.data().createdAt),
-      assignedAt: doc.data().assignedAt ? new Date(doc.data().assignedAt) : undefined,
-      lastUpdatedAt: doc.data().lastUpdatedAt ? new Date(doc.data().lastUpdatedAt) : undefined
-    })) as Ticket[]
+    return querySnapshot.docs.map(doc => {
+      const data = doc.data()
+      return {
+        ...data,
+        id: doc.id,
+        dueDate: new Date(data.dueDate),
+        createdAt: new Date(data.createdAt),
+        assignedAt: data.assignedAt ? new Date(data.assignedAt) : undefined,
+        lastUpdatedAt: data.lastUpdatedAt ? new Date(data.lastUpdatedAt) : undefined,
+        status: data.status || 'Open' // Ensure status always has a value
+      } as Ticket
+    })
   } catch (error) {
     console.error('Error fetching all tickets:', error)
     throw error
@@ -147,12 +151,20 @@ export const getAllTickets = async (): Promise<Ticket[]> => {
 
 export const assignTicket = async (ticketId: string, agentId: string): Promise<void> => {
   const ticketRef = doc(db, 'tickets', ticketId)
-  await updateDoc(ticketRef, {
+  const updateData = {
     assignedTo: agentId,
     assignedAt: new Date().toISOString(),
     lastUpdatedBy: agentId,
     lastUpdatedAt: new Date().toISOString()
-  })
+  }
+
+  try {
+    await updateDoc(ticketRef, updateData)
+    console.log('Ticket assigned successfully:', { ticketId, agentId })
+  } catch (error) {
+    console.error('Error assigning ticket:', error)
+    throw error
+  }
 }
 
 export const updateTicketStatus = async (
@@ -161,9 +173,17 @@ export const updateTicketStatus = async (
   updatedBy: string
 ): Promise<void> => {
   const ticketRef = doc(db, 'tickets', ticketId)
-  await updateDoc(ticketRef, {
+  const updateData = {
     status,
     lastUpdatedBy: updatedBy,
     lastUpdatedAt: new Date().toISOString()
-  })
+  }
+
+  try {
+    await updateDoc(ticketRef, updateData)
+    console.log('Ticket status updated successfully:', { ticketId, status, updatedBy })
+  } catch (error) {
+    console.error('Error updating ticket status:', error)
+    throw error
+  }
 }
