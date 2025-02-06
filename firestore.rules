@@ -1,0 +1,21 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Ticket rules
+    match /tickets/{ticketId} {
+      // Allow reading tickets if user is authenticated and owns the ticket
+      allow read: if request.auth != null;
+      
+      // Allow creating tickets if user is authenticated and sets themselves as owner
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      
+      // Allow update/delete if user owns the ticket
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+    }
+
+    // User profile rules
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+} 
