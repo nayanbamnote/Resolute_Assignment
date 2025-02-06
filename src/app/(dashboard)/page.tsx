@@ -9,11 +9,14 @@ import Typography from '@mui/material/Typography'
 
 // Hook Imports
 import { useAuth } from '@/context/AuthContext'
+import SupportDashboard from '@/components/SupportDashboard'
+import UserDashboard from '@/components/UserDashboard'
 
 const DashboardAnalytics = () => {
   // Hooks
   const router = useRouter()
   const { user, signOut } = useAuth()
+  console.log(user, user?.role)
 
   const handleLogout = async () => {
     try {
@@ -33,6 +36,7 @@ const DashboardAnalytics = () => {
         </Button>
       </div>
       <Typography>Welcome, {user?.email}</Typography>
+      <div className=''>{user?.role === 'agent' ? <SupportDashboard /> : <UserDashboard />}</div>
     </div>
   )
 }
