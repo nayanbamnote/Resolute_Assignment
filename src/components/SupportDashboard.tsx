@@ -18,6 +18,7 @@ import {
 } from '@mui/material'
 import AssignmentIcon from '@mui/icons-material/Assignment'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+import CloseIcon from '@mui/icons-material/Close'
 
 const SupportDashboard = () => {
   // Initialize tickets state with dummy data
@@ -40,7 +41,7 @@ const SupportDashboard = () => {
       title: 'Page not found',
       description: '404 error on homepage',
       priority: 'Medium',
-      status: 'Closed',
+      status: 'Open',
       createdBy: 'Charlie',
       assignedTo: 'David',
       category: 'General',
@@ -82,7 +83,7 @@ const SupportDashboard = () => {
   const updateStatus = (ticketId: number) => {
     const updatedTickets = tickets.map(ticket => {
       if (ticket.id === ticketId) {
-        return { ...ticket, status: ticket.status === 'Open' ? 'Closed' : 'Open' }
+        return { ...ticket, status: ticket.status === 'Open' ? 'Completed' : 'Open' }
       }
       return ticket
     })
@@ -131,20 +132,19 @@ const SupportDashboard = () => {
                 <TableCell>{ticket.title}</TableCell>
                 <TableCell>{ticket.description}</TableCell>
                 <TableCell>{ticket.priority}</TableCell>
-                <TableCell>
-                  <Button
-                    variant='contained'
-                    color={ticket.status === 'Open' ? 'success' : 'error'}
-                    onClick={() => updateStatus(ticket.id)}
-                  >
-                    {ticket.status}
-                  </Button>
-                </TableCell>
+                <TableCell>{ticket.status}</TableCell>
                 <TableCell>{ticket.createdBy}</TableCell>
                 <TableCell>{ticket.assignedTo}</TableCell>
                 <TableCell>
                   <IconButton onClick={() => openAssignModal(ticket.id)}>
                     <AssignmentIcon />
+                  </IconButton>
+                  <IconButton onClick={() => updateStatus(ticket.id)}>
+                    {ticket.status === 'Open' ? (
+                      <CheckCircleIcon style={{ color: '' }} />
+                    ) : (
+                      <CheckCircleIcon style={{ color: 'green' }} />
+                    )}
                   </IconButton>
                 </TableCell>
               </TableRow>
@@ -157,6 +157,7 @@ const SupportDashboard = () => {
         <div
           style={{
             display: 'flex',
+            gap: '10px',
             flexDirection: 'column',
             justifyContent: 'center',
             alignItems: 'center',
@@ -176,6 +177,7 @@ const SupportDashboard = () => {
           <Typography variant='h6'>Assign Ticket</Typography>
           <FormControl fullWidth margin='normal'>
             <InputLabel>Assign To</InputLabel>
+            <br></br>
             <Select
               value={currentTicket.assignedTo}
               onChange={e => setCurrentTicket({ ...currentTicket, assignedTo: e.target.value })}

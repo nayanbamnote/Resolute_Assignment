@@ -56,6 +56,7 @@ const DashboardAnalytics = () => {
         </Button>
       </div>
       <Typography>Welcome, {user?.email}</Typography>
+      <br />
       <div className=''>{role === 'agent' ? <SupportDashboard /> : <UserDashboard />}</div>
     </div>
   )
