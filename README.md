@@ -1,4 +1,34 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Support Ticket Management System
+
+A React-based support ticket system with role-based access control, built using Firebase Authentication and Firestore.
+
+## Features
+
+### For Customers
+
+- Create new support tickets with detailed information
+- View and manage their own tickets
+- Track ticket status and updates
+- Delete their tickets if needed
+
+### For Support Agents
+
+- View all customer tickets
+- Assign tickets to team members
+- Update ticket status (Open → In Progress → Resolved → Closed)
+- Access comprehensive ticket details
+
+## Tech Stack
+
+- **Frontend**: React with TypeScript
+- **UI Framework**: Material-UI (MUI)
+- **Backend**: Firebase
+  - Authentication
+  - Firestore Database
+- **State Management**: React Context API
+- **Deployment**: Firebase/Vercel/Netlify
+
+## Project Structure
 
 ## Getting Started
 
