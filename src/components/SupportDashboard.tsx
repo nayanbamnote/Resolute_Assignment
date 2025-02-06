@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import {
   Button,
   Table,
@@ -20,7 +20,50 @@ import AssignmentIcon from '@mui/icons-material/Assignment'
 import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 
 const SupportDashboard = () => {
-  const [tickets, setTickets] = useState([]) // Initialize tickets state
+  // Initialize tickets state with dummy data
+  const [tickets, setTickets] = useState([
+    {
+      id: 1,
+      title: 'Issue with login',
+      description: 'User cannot log in',
+      priority: 'High',
+      status: 'Open',
+      createdBy: 'Alice',
+      assignedTo: 'Bob',
+      category: 'Technical',
+      date: '2023-10-01',
+      isUrgent: false,
+      attachments: null
+    },
+    {
+      id: 2,
+      title: 'Page not found',
+      description: '404 error on homepage',
+      priority: 'Medium',
+      status: 'Closed',
+      createdBy: 'Charlie',
+      assignedTo: 'David',
+      category: 'General',
+      date: '2023-10-02',
+      isUrgent: true,
+      attachments: null
+    },
+    {
+      id: 3,
+      title: 'Payment processing error',
+      description: 'User reports payment not going through',
+      priority: 'High',
+      status: 'Open',
+      createdBy: 'Eve',
+      assignedTo: 'Frank',
+      category: 'Billing',
+      date: '2023-10-03',
+      isUrgent: true,
+      attachments: null
+    }
+    // Add more dummy tickets as needed
+  ])
+
   const [modalOpen, setModalOpen] = useState(false)
   const [currentTicket, setCurrentTicket] = useState({
     id: 0,
@@ -36,11 +79,6 @@ const SupportDashboard = () => {
     attachments: null
   })
 
-  useEffect(() => {
-    // Fetch tickets from Firestore or any other source
-    // setTickets(fetchedTickets)
-  }, [])
-
   const updateStatus = (ticketId: number) => {
     const updatedTickets = tickets.map(ticket => {
       if (ticket.id === ticketId) {
@@ -51,17 +89,20 @@ const SupportDashboard = () => {
     setTickets(updatedTickets)
   }
 
-  const assignTicket = (ticketId: number) => {
-    const assignedTo = prompt('Enter the name of the person to assign the ticket to:')
-    if (assignedTo) {
-      const updatedTickets = tickets.map(ticket => {
-        if (ticket.id === ticketId) {
-          return { ...ticket, assignedTo }
-        }
-        return ticket
-      })
-      setTickets(updatedTickets)
-    }
+  const openAssignModal = (ticketId: number) => {
+    setCurrentTicket(tickets.find(ticket => ticket.id === ticketId)!)
+    setModalOpen(true)
+  }
+
+  const assignTicket = () => {
+    const updatedTickets = tickets.map(ticket => {
+      if (ticket.id === currentTicket.id) {
+        return { ...ticket, assignedTo: currentTicket.assignedTo }
+      }
+      return ticket
+    })
+    setTickets(updatedTickets)
+    setModalOpen(false)
   }
 
   return (
@@ -90,14 +131,19 @@ const SupportDashboard = () => {
                 <TableCell>{ticket.title}</TableCell>
                 <TableCell>{ticket.description}</TableCell>
                 <TableCell>{ticket.priority}</TableCell>
-                <TableCell>{ticket.status}</TableCell>
+                <TableCell>
+                  <Button
+                    variant='contained'
+                    color={ticket.status === 'Open' ? 'success' : 'error'}
+                    onClick={() => updateStatus(ticket.id)}
+                  >
+                    {ticket.status}
+                  </Button>
+                </TableCell>
                 <TableCell>{ticket.createdBy}</TableCell>
                 <TableCell>{ticket.assignedTo}</TableCell>
                 <TableCell>
-                  <IconButton onClick={() => updateStatus(ticket.id)}>
-                    <CheckCircleIcon />
-                  </IconButton>
-                  <IconButton onClick={() => assignTicket(ticket.id)}>
+                  <IconButton onClick={() => openAssignModal(ticket.id)}>
                     <AssignmentIcon />
                   </IconButton>
                 </TableCell>
@@ -140,7 +186,7 @@ const SupportDashboard = () => {
               {/* Add more users as needed */}
             </Select>
           </FormControl>
-          <Button variant='contained' color='primary' onClick={() => assignTicket(currentTicket.id)}>
+          <Button variant='contained' color='primary' onClick={assignTicket}>
             Assign
           </Button>
           <Button variant='outlined' onClick={() => setModalOpen(false)}>
